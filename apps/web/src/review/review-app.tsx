@@ -366,6 +366,7 @@ export function ReviewApp() {
   useEffect(() => {
     setDraftPrincipal(session?.principal.id ?? null);
   }, [session]);
+  const [accessContext, setAccessContext] = useState<AccessContext | null>(null);
   const accessContextRef = useRef<AccessContext | null>(null);
   const bootstrapInFlightRef = useRef(false);
   const [projects, setProjects] = useState<readonly Project[]>([]);
@@ -387,6 +388,7 @@ export function ReviewApp() {
         ),
       ]);
       accessContextRef.current = loadedAccessContext;
+      setAccessContext(loadedAccessContext);
       let loadedSession: Session;
       if (initialSession.kind === "authenticated") {
         loadedSession = initialSession.value;
@@ -442,7 +444,7 @@ export function ReviewApp() {
   }, [theme]);
 
   const loginRedirect = reviewLoginRedirect(
-    accessContextRef.current,
+    accessContext,
     sessionState,
     window.location,
   );
