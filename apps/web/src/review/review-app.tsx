@@ -4,6 +4,7 @@ import {
   useCallback,
   useDeferredValue,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -73,6 +74,10 @@ import {ReviewProjectPicker} from "./review-project-picker.tsx";
 import {isSettingsPath} from "./review-routes.ts";
 import {ReviewSettings} from "./review-settings.tsx";
 import {ReviewPanelEdge} from "./review-panel-edge.tsx";
+import {
+  reviewLoginRedirect,
+  type ReviewSessionState,
+} from "./review-login-redirect.ts";
 import {AgentLogos, ReviewShareControl} from "./review-share.tsx";
 import {useReviewPanelMotion} from "./use-review-panel-motion.ts";
 import {useReviewResizablePanel} from "./use-review-resizable-panel.ts";
@@ -364,9 +369,7 @@ export function ReviewApp() {
   const accessContextRef = useRef<AccessContext | null>(null);
   const bootstrapInFlightRef = useRef(false);
   const [projects, setProjects] = useState<readonly Project[]>([]);
-  const [sessionState, setSessionState] = useState<
-    "loading" | "ready" | "unauthenticated"
-  >("loading");
+  const [sessionState, setSessionState] = useState<ReviewSessionState>("loading");
   const [error, setError] = useState<Error | null>(null);
   const [theme, setTheme] = useState<ReviewTheme>(readInitialTheme);
 
@@ -438,6 +441,15 @@ export function ReviewApp() {
     window.localStorage.setItem("artifact-review-theme", theme);
   }, [theme]);
 
+  const loginRedirect = reviewLoginRedirect(
+    accessContextRef.current,
+    sessionState,
+    window.location,
+  );
+  useLayoutEffect(() => {
+    if (loginRedirect !== null) window.location.replace(loginRedirect);
+  }, [loginRedirect]);
+
   const createProject = useCallback(async (name: string): Promise<Project> => {
     const created = await api.createProject(name);
     setProjects((current) => [
@@ -455,6 +467,7 @@ export function ReviewApp() {
   if (sessionState === "loading") {
     return <ReviewGate description="Opening the local artifact catalog." title="Loading Artifact Server" />;
   }
+  if (loginRedirect !== null) return null;
   if (sessionState === "unauthenticated") {
     const returnTo = `${window.location.pathname}${window.location.search}`;
     return (
